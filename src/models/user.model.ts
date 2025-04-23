@@ -28,10 +28,10 @@ const userSchema = new Schema<IUser>(
   {
     email: {
       type: String,
-      required: true,
-      unique: true,
+      required: false,
       trim: true,
       lowercase: true,
+      unique: false
     },
     password: {
       type: String,
@@ -41,7 +41,6 @@ const userSchema = new Schema<IUser>(
     name: {
       type: String,
       required: true,
-      trim: true,
     },
     role: {
       type: String,
