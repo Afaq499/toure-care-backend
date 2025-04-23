@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/user.model';
+import { generateInvitationCode } from '../utils/helpers';
 
 interface AuthRequest extends Request {
   user?: {
@@ -11,7 +12,15 @@ interface AuthRequest extends Request {
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { email, password, name } = req.body;
+    const {
+      email,
+      password,
+      name,
+      role = 'user',
+      parentId,
+      mobileNumber,
+      parentUser = 'system'
+    } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -22,11 +31,22 @@ export const register = async (req: Request, res: Response) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Generate invitation code if role is agent
+    let invitationCode;
+    if (role === 'agent') {
+      invitationCode = await generateInvitationCode();
+    }
+
     // Create new user
     const user = new User({
       email,
       password: hashedPassword,
       name,
+      role,
+      parentId,
+      mobileNumber,
+      parentUser,
+      invitationCode
     });
 
     await user.save();
@@ -44,26 +64,41 @@ export const register = async (req: Request, res: Response) => {
         email: user.email,
         name: user.name,
         role: user.role,
+        parentId: user.parentId,
+        mobileNumber: user.mobileNumber,
+        balance: user.balance,
+        dailyAvailableOrders: user.dailyAvailableOrders,
+        todaysOrders: user.todaysOrders,
+        todaysCommission: user.todaysCommission,
+        reputation: user.reputation,
+        parentUser: user.parentUser,
+        invitationCode: user.invitationCode,
+        status: user.status,
+        frozenAmount: user.frozenAmount,
+        allowWithdrawal: user.allowWithdrawal
       },
       token,
     });
   } catch (error) {
-    res.status(500).json({ error: 'Error creating user' });
+    console.error('Error in registration:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
-
+    console.log({email, password});
     // Find user
     const user = await User.findOne({ email });
+    console.log({user});
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     // Check password
     const isMatch = await bcrypt.compare(password, user.password);
+    console.log({isMatch});
     if (!isMatch) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }

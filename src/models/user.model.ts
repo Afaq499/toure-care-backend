@@ -4,7 +4,22 @@ export interface IUser extends Document {
   email: string;
   password: string;
   name: string;
-  role: 'admin' | 'user';
+  role: 'admin' | 'user' | 'agent';
+  parentId: string;
+  mobileNumber: string;
+  balance: number;
+  dailyAvailableOrders: number;
+  todaysOrders: number;
+  todaysCommission: number;
+  reputation: number;
+  parentUser: string;
+  invitationCode: string;
+  status: boolean;
+  frozenAmount: number;
+  allowWithdrawal: 'allowed' | 'not_allowed';
+  paymentPassword: string;
+  withdrawalMinAmount: number;
+  withdrawalMaxAmount: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,9 +45,71 @@ const userSchema = new Schema<IUser>(
     },
     role: {
       type: String,
-      enum: ['admin', 'user'],
+      enum: ['admin', 'user', 'agent'],
       default: 'user',
     },
+    parentId: {
+      type: String,
+      default: '0'
+    },
+    mobileNumber: {
+      type: String,
+      trim: true
+    },
+    balance: {
+      type: Number,
+      default: 0
+    },
+    dailyAvailableOrders: {
+      type: Number,
+      default: 0
+    },
+    todaysOrders: {
+      type: Number,
+      default: 0
+    },
+    todaysCommission: {
+      type: Number,
+      default: 0
+    },
+    reputation: {
+      type: Number,
+      default: 100
+    },
+    parentUser: {
+      type: String,
+      default: 'system'
+    },
+    invitationCode: {
+      type: String,
+      unique: true,
+      sparse: true
+    },
+    status: {
+      type: Boolean,
+      default: true
+    },
+    frozenAmount: {
+      type: Number,
+      default: 0
+    },
+    allowWithdrawal: {
+      type: String,
+      enum: ['allowed', 'not_allowed'],
+      default: 'allowed'
+    },
+    paymentPassword: {
+      type: String,
+      minlength: 6
+    },
+    withdrawalMinAmount: {
+      type: Number,
+      default: 0
+    },
+    withdrawalMaxAmount: {
+      type: Number,
+      default: 1000000
+    }
   },
   {
     timestamps: true,
