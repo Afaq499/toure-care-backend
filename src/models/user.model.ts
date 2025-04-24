@@ -94,7 +94,7 @@ const userSchema = new Schema<IUser>(
     },
     allowWithdrawal: {
       type: String,
-      enum: ['allowed', 'not_allowed'],
+      enum: ['allowed', 'blocked'],
       default: 'allowed'
     },
     paymentPassword: {
