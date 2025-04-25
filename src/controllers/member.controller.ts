@@ -7,7 +7,7 @@ import { generateRandomString } from '../utils/helpers';
 export const createMember = async (req: Request, res: Response) => {
   try {
     const {
-      name,
+     username,
       email,
       password,
       mobileNumber,
@@ -35,7 +35,7 @@ export const createMember = async (req: Request, res: Response) => {
 
     // Create the member user
     const member = new User({
-      name,
+      name: username,
       email,
       password,
       mobileNumber,
@@ -334,6 +334,108 @@ export const getAllMembers = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Error fetching members',
+      error: error.message,
+    });
+  }
+};
+
+export const updateMember = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const {
+      name,
+      email,
+      mobileNumber,
+      status,
+      balance,
+      dailyAvailableOrders,
+      reputation,
+      frozenAmount,
+      allowWithdrawal,
+      withdrawalMinAmount,
+      withdrawalMaxAmount,
+      commissionRate,
+    } = req.body;
+
+    // Find the member
+    const member = await User.findById(id);
+    if (!member) {
+      return res.status(404).json({
+        success: false,
+        message: 'Member not found',
+      });
+    }
+
+    // Update member details
+    const updateData: any = {};
+    if (name) updateData.name = name;
+    if (email) updateData.email = email;
+    if (mobileNumber) updateData.mobileNumber = mobileNumber;
+    if (status !== undefined) updateData.status = status;
+    if (balance !== undefined) updateData.balance = balance;
+    if (dailyAvailableOrders !== undefined) updateData.dailyAvailableOrders = dailyAvailableOrders;
+    if (reputation !== undefined) updateData.reputation = reputation;
+    if (frozenAmount !== undefined) updateData.frozenAmount = frozenAmount;
+    if (allowWithdrawal) updateData.allowWithdrawal = allowWithdrawal;
+    if (withdrawalMinAmount !== undefined) updateData.withdrawalMinAmount = withdrawalMinAmount;
+    if (withdrawalMaxAmount !== undefined) updateData.withdrawalMaxAmount = withdrawalMaxAmount;
+
+    // Update member
+    const updatedMember = await User.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true }
+    ).select('-password -paymentPassword');
+
+    // Update association if commission rate is provided
+    if (commissionRate !== undefined) {
+      await MemberAssociation.findOneAndUpdate(
+        { memberId: id },
+        { 
+          $set: { 
+            commissionRate,
+            lastActiveAt: new Date()
+          }
+        },
+        { new: true }
+      );
+    }
+
+    // Get the updated association
+    const association = await MemberAssociation.findOne({ memberId: id });
+
+    // Get agent details
+    const agent = member.parentId && member.parentId !== '0' && mongoose.Types.ObjectId.isValid(member.parentId)
+      ? await User.findById(member.parentId).select('name email mobileNumber')
+      : null;
+
+    const response = {
+      ...updatedMember?.toObject(),
+      association: association ? {
+        status: association.status,
+        commissionRate: association.commissionRate,
+        joinedAt: association.joinedAt,
+        lastActiveAt: association.lastActiveAt,
+        totalCommissionEarned: association.totalCommissionEarned,
+        totalOrders: association.totalOrders,
+      } : null,
+      agent: agent ? {
+        id: agent._id,
+        name: agent.name,
+        email: agent.email,
+        mobileNumber: agent.mobileNumber,
+      } : null,
+    };
+
+    return res.status(200).json({
+      success: true,
+      message: 'Member updated successfully',
+      data: response,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: 'Error updating member',
       error: error.message,
     });
   }
