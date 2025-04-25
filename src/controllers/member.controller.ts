@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import User from '../models/user.model';
 import MemberAssociation from '../models/member-association.model';
 import { generateRandomString } from '../utils/helpers';
@@ -246,6 +247,93 @@ export const getAgentMembers = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Error fetching agent members',
+      error: error.message,
+    });
+  }
+};
+
+export const getAllMembers = async (req: Request, res: Response) => {
+  try {
+    const { page = 1, limit = 10, search = '' } = req.query;
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    // Build search query
+    const searchQuery = {
+      role: 'user',
+      ...(search && {
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } },
+          { mobileNumber: { $regex: search, $options: 'i' } },
+        ],
+      }),
+    };
+
+    // Get total count of members with search
+    const total = await User.countDocuments(searchQuery);
+
+    // Get paginated members with their associations
+    const members = await User.find(searchQuery)
+      .select('-password -paymentPassword')
+      .skip(skip)
+      .limit(Number(limit))
+      .sort({ createdAt: -1 });
+
+    // Get associations for all members
+    const memberIds = members.map(member => member._id);
+    const associations = await MemberAssociation.find({ memberId: { $in: memberIds } });
+
+    // Get parent agents for all members, filtering out invalid parentIds
+    const validAgentIds = members
+      .map(member => member.parentId)
+      .filter(id => id && id !== '0' && mongoose.Types.ObjectId.isValid(id));
+    
+    const agents = validAgentIds.length > 0 
+      ? await User.find({ _id: { $in: validAgentIds } })
+      : [];
+
+    // Map associations and agent details to members
+    const membersWithDetails = members.map(member => {
+      const association = associations.find(a => a.memberId.toString() === member._id.toString());
+      const agent = member.parentId && member.parentId !== '0' && mongoose.Types.ObjectId.isValid(member.parentId)
+        ? agents.find(a => a._id.toString() === member.parentId)
+        : null;
+      
+      return {
+        ...member.toObject(),
+        association: association ? {
+          status: association.status,
+          commissionRate: association.commissionRate,
+          joinedAt: association.joinedAt,
+          lastActiveAt: association.lastActiveAt,
+          totalCommissionEarned: association.totalCommissionEarned,
+          totalOrders: association.totalOrders,
+        } : null,
+        agent: agent ? {
+          id: agent._id,
+          name: agent.name,
+          parentId: agent.parentId,
+          mobileNumber: agent.mobileNumber,
+        } : null,
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: membersWithDetails,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        pages: Math.ceil(total / Number(limit)),
+      },
+    });
+  } catch (error: any) {
+    console.log("error => ", error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error fetching members',
       error: error.message,
     });
   }

@@ -1,11 +1,14 @@
 import express from 'express';
-import { createMember, getMemberDetails, getAgentMembers } from '../controllers/member.controller';
+import { createMember, getMemberDetails, getAgentMembers, getAllMembers } from '../controllers/member.controller';
 import { authenticate } from '../middleware/auth';
 
 const router = express.Router();
 
 // Create a new member (associated with an agent)
 router.post('/', authenticate, createMember);
+
+// Get all members with pagination and search
+router.get('/', authenticate, getAllMembers);
 
 // Get member details
 router.get('/:id', authenticate, getMemberDetails);
