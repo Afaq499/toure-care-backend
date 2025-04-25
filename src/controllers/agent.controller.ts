@@ -220,13 +220,26 @@ export const getAllAgents = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
+    const search = req.query.search as string || '';
     const skip = (page - 1) * limit;
 
-    // Get total count of agents
-    const totalAgents = await User.countDocuments({ role: 'agent' });
+    // Build search query
+    const searchQuery = {
+      role: 'agent',
+      ...(search && {
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } },
+          { mobileNumber: { $regex: search, $options: 'i' } },
+        ],
+      }),
+    };
 
-    // Get paginated agents
-    const agents = await User.find({ role: 'agent' })
+    // Get total count of agents with search
+    const totalAgents = await User.countDocuments(searchQuery);
+
+    // Get paginated agents with search
+    const agents = await User.find(searchQuery)
       .skip(skip)
       .limit(limit)
       .select('-password -paymentPassword') // Exclude sensitive fields

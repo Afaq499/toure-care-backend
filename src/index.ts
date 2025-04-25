@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes';
 import agentRoutes from './routes/agent.routes';
 import productRoutes from './routes/product.routes';
+import memberRoutes from './routes/member.routes';
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api', agentRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/members', memberRoutes);
 
 // Database connection
 mongoose.connect(process.env.MONGODB_URI!)
