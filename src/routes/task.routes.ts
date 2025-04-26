@@ -1,4 +1,5 @@
 import express from 'express';
+import { auth } from '../middleware/auth.middleware';
 import {
   assignRandomTasks,
   resetTasks,
@@ -9,15 +10,15 @@ import {
 const router = express.Router();
 
 // Assign random tasks to a user
-router.post('/assign/:userId', assignRandomTasks);
+router.post('/assign/:userId', auth, assignRandomTasks);
 
 // Reset tasks for a user
-router.post('/reset/:userId', resetTasks);
+router.post('/reset/:userId', auth, resetTasks);
 
 // Get task status with results
-router.get('/status/:userId', getTaskStatus);
+router.get('/status/:userId', auth, getTaskStatus);
 
 // Get task statistics
-router.get('/stats/:userId', getTaskStats);
+// router.get('/stats/:userId', auth, getTaskStats);
 
 export default router; 

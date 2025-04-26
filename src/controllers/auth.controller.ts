@@ -87,18 +87,23 @@ export const register = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
-    console.log({email, password});
+    const { password, username } = req.body;
     // Find user
-    const user = await User.findOne({ email });
-    console.log({user});
+    const userSelector = (username?.includes('@')) ? { email: username } : {
+      $or: [
+        { name: username },
+        { mobileNumber: username },
+      ]
+    }
+    
+    const user = await User.findOne(userSelector);
+
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     // Check password
     const isMatch = await bcrypt.compare(password, user.password);
-    console.log({isMatch});
     if (!isMatch) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }

@@ -3,28 +3,24 @@ import jwt from 'jsonwebtoken';
 import User from '../models/user.model';
 
 interface AuthRequest extends Request {
-  user?: any;
+  user?: {
+    _id: string;
+  };
 }
 
 export const auth = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
-
+    
     if (!token) {
-      throw new Error();
+      return res.status(401).json({ message: 'No token, authorization denied' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { _id: string };
-    const user = await User.findOne({ _id: decoded._id });
-
-    if (!user) {
-      throw new Error();
-    }
-
-    req.user = user;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as { _id: string };
+    req.user = { _id: decoded._id };
     next();
   } catch (error) {
-    res.status(401).json({ error: 'Please authenticate.' });
+    res.status(401).json({ message: 'Token is not valid' });
   }
 };
 

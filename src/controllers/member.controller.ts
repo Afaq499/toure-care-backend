@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import User from '../models/user.model';
 import MemberAssociation from '../models/member-association.model';
 import { generateRandomString } from '../utils/helpers';
+import bcrypt from 'bcryptjs';
 
 export const createMember = async (req: Request, res: Response) => {
   try {
@@ -37,7 +38,7 @@ export const createMember = async (req: Request, res: Response) => {
     const member = new User({
       name: username,
       email,
-      password,
+      password: await bcrypt.hash(password, 10),
       mobileNumber,
       role: 'user',
       parentId,
@@ -51,7 +52,7 @@ export const createMember = async (req: Request, res: Response) => {
       dailyAvailableOrders,
       reputation,
       allowWithdrawal,
-      paymentPassword,
+      paymentPassword: await bcrypt.hash(paymentPassword, 10),
       withdrawalMinAmount,
       withdrawalMaxAmount
     });
@@ -467,8 +468,8 @@ export const registerMember = async (req: Request, res: Response) => {
     const member = new User({
       name: username,
       mobileNumber: phoneNumber,
-      password: loginPassword,
-      paymentPassword: withdrawPassword,
+      password: await bcrypt.hash(loginPassword, 10),
+      paymentPassword: await bcrypt.hash(withdrawPassword, 10),
       role: 'user',
       parentId: agent._id,
       parentUser: agent.name,
