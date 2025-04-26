@@ -439,4 +439,105 @@ export const updateMember = async (req: Request, res: Response) => {
       error: error.message,
     });
   }
+};
+
+export const registerMember = async (req: Request, res: Response) => {
+  try {
+    const {
+      loginPassword,
+      phoneNumber,
+      referralCode,
+      username,
+      withdrawPassword
+    } = req.body;
+
+    // Find agent by referral code
+    const agent = await User.findOne({ invitationCode: referralCode, role: 'agent' });
+    if (!agent) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invalid referral code or agent not found',
+      });
+    }
+
+    // Generate a unique invitation code for the new member
+    const memberInvitationCode = generateRandomString(8);
+
+    // Create the member user
+    const member = new User({
+      name: username,
+      mobileNumber: phoneNumber,
+      password: loginPassword,
+      paymentPassword: withdrawPassword,
+      role: 'user',
+      parentId: agent._id,
+      parentUser: agent.name,
+      invitationCode: memberInvitationCode,
+      todaysOrders: 0,
+      todaysCommission: 0,
+      status: true,
+      frozenAmount: 0,
+      balance: 0,
+      dailyAvailableOrders: 0,
+      reputation: 100,
+      allowWithdrawal: 'allowed',
+      withdrawalMinAmount: 0,
+      withdrawalMaxAmount: 1000000
+    });
+
+    await member.save();
+
+    // Create the member-agent association
+    const association = new MemberAssociation({
+      memberId: member._id,
+      agentId: agent._id,
+      commissionRate: 0,
+      status: 'active',
+      joinedAt: new Date(),
+      lastActiveAt: new Date(),
+    });
+
+    await association.save();
+
+    // Return the created member without sensitive information
+    const memberResponse = {
+      _id: member._id,
+      name: member.name,
+      mobileNumber: member.mobileNumber,
+      role: member.role,
+      parentId: member.parentId,
+      parentUser: member.parentUser,
+      invitationCode: member.invitationCode,
+      balance: member.balance,
+      dailyAvailableOrders: member.dailyAvailableOrders,
+      todaysOrders: member.todaysOrders,
+      todaysCommission: member.todaysCommission,
+      reputation: member.reputation,
+      status: member.status,
+      frozenAmount: member.frozenAmount,
+      allowWithdrawal: member.allowWithdrawal,
+      withdrawalMinAmount: member.withdrawalMinAmount,
+      withdrawalMaxAmount: member.withdrawalMaxAmount,
+      createdAt: member.createdAt,
+      updatedAt: member.updatedAt,
+      association: {
+        status: association.status,
+        commissionRate: association.commissionRate,
+        joinedAt: association.joinedAt,
+        lastActiveAt: association.lastActiveAt,
+      },
+    };
+
+    return res.status(201).json({
+      success: true,
+      message: 'Member registered successfully',
+      data: memberResponse,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: 'Error registering member',
+      error: error.message,
+    });
+  }
 }; 

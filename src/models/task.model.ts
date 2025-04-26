@@ -1,0 +1,40 @@
+import mongoose, { Schema, Document } from 'mongoose';
+
+export interface ITask extends Document {
+  productId: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
+  status: 'pending' | 'completed';
+  productPrice: number;
+  result?: any;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const taskSchema = new Schema<ITask>({
+  productId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Product',
+    required: true
+  },
+  userId: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'completed'],
+    default: 'pending'
+  },
+  productPrice: {
+    type: Number,
+    required: true
+  },
+  result: {
+    type: Schema.Types.Mixed
+  }
+}, {
+  timestamps: true
+});
+
+export default mongoose.model<ITask>('Task', taskSchema); 
