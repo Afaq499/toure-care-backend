@@ -120,4 +120,54 @@ export const getTaskStats = async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({ message: 'Error fetching task stats', error });
   }
+};
+
+export const submitTask = async (req: AuthRequest, res: Response) => {
+  try {
+    const { taskId } = req.params;
+    const { rating, review } = req.body;
+
+    const task = await Task.findById(taskId);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    // Update task status and add review
+    task.status = 'completed';
+    task.rating = rating;
+    task.review = review;
+    task.completedAt = new Date();
+    await task.save();
+
+    // Calculate earnings (1% of product price)
+    const earnings = task.productPrice * 0.01;
+
+    // Update user's earnings
+    const user = await User.findById(task.userId);
+    if (user) {
+      // Update total earnings
+      user.totalEarnings = (user.totalEarnings || 0) + earnings;
+      
+      // Update today's earnings
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (!user.todaysEarnings || user.lastEarningDate < today) {
+        user.todaysEarnings = earnings;
+        user.lastEarningDate = today;
+      } else {
+        user.todaysEarnings += earnings;
+      }
+
+      await user.save();
+    }
+
+    res.status(200).json({
+      message: 'Task submitted successfully',
+      task,
+      earnings
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error submitting task', error });
+  }
 }; 

@@ -4,7 +4,8 @@ import {
   assignRandomTasks,
   resetTasks,
   getTaskStatus,
-  getTaskStats
+  getTaskStats,
+  submitTask
 } from '../controllers/task.controller';
 
 const router = express.Router();
@@ -20,5 +21,8 @@ router.get('/status/:userId', auth, getTaskStatus);
 
 // Get task statistics
 // router.get('/stats/:userId', auth, getTaskStats);
+
+// Submit task with rating and review
+router.post('/submit/:taskId', auth, submitTask);
 
 export default router; 

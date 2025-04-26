@@ -20,6 +20,9 @@ export interface IUser extends Document {
   paymentPassword: string;
   withdrawalMinAmount: number;
   withdrawalMaxAmount: number;
+  totalEarnings: number;
+  todaysEarnings: number;
+  lastEarningDate: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -112,7 +115,10 @@ const userSchema = new Schema<IUser>(
     withdrawalMaxAmount: {
       type: Number,
       default: 1000000
-    }
+    },
+    totalEarnings: { type: Number, default: 0 },
+    todaysEarnings: { type: Number, default: 0 },
+    lastEarningDate: { type: Date }
   },
   {
     timestamps: true,

@@ -8,6 +8,9 @@ export interface ITask extends Document {
   result?: any;
   createdAt: Date;
   updatedAt: Date;
+  rating?: number;
+  review?: string;
+  completedAt?: Date;
 }
 
 const taskSchema = new Schema<ITask>({
@@ -32,6 +35,17 @@ const taskSchema = new Schema<ITask>({
   },
   result: {
     type: Schema.Types.Mixed
+  },
+  rating: {
+    type: Number,
+    min: 1,
+    max: 5
+  },
+  review: {
+    type: String
+  },
+  completedAt: {
+    type: Date
   }
 }, {
   timestamps: true
