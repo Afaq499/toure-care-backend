@@ -1,8 +1,11 @@
 import express from 'express';
-import { createMember, getMemberDetails, getAgentMembers, getAllMembers, updateMember } from '../controllers/member.controller';
+import { createMember, getMemberDetails, getAgentMembers, getAllMembers, updateMember, registerMember } from '../controllers/member.controller';
 import { authenticate } from '../middleware/auth';
 
 const router = express.Router();
+
+// Register a new member with referral code
+router.post('/register', registerMember);
 
 // Create a new member (associated with an agent)
 router.post('/', authenticate, createMember);

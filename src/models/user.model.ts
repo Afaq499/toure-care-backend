@@ -61,7 +61,7 @@ const userSchema = new Schema<IUser>(
     },
     dailyAvailableOrders: {
       type: Number,
-      default: 0
+      default: 40
     },
     todaysOrders: {
       type: Number,
