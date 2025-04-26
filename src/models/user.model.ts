@@ -41,6 +41,8 @@ const userSchema = new Schema<IUser>(
     name: {
       type: String,
       required: true,
+      unique: true,
+      trim: true
     },
     role: {
       type: String,
@@ -53,7 +55,9 @@ const userSchema = new Schema<IUser>(
     },
     mobileNumber: {
       type: String,
-      trim: true
+      trim: true,
+      unique: true,
+      sparse: true
     },
     balance: {
       type: Number,
