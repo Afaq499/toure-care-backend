@@ -5,7 +5,8 @@ import {
   resetTasks,
   getTaskStatus,
   getTaskStats,
-  submitTask
+  submitTask,
+  updateTasksWithProduct
 } from '../controllers/task.controller';
 
 const router = express.Router();
@@ -24,5 +25,8 @@ router.get('/status/:userId', auth, getTaskStatus);
 
 // Submit task with rating and review
 router.post('/submit/:taskId', auth, submitTask);
+
+// Update multiple tasks with a new product
+router.post('/update-tasks', auth, updateTasksWithProduct);
 
 export default router; 

@@ -1,5 +1,15 @@
 import { Request, Response } from 'express';
 import Product from '../models/product.model';
+import Task from '../models/task.model';
+import mongoose from 'mongoose';
+
+interface AuthRequest extends Request {
+  user?: {
+    _id: string;
+    name: string;
+    mobileNumber: string;
+  };
+}
 
 // Create a new product
 export const createProduct = async (req: Request, res: Response) => {
@@ -194,6 +204,79 @@ export const deleteProduct = async (req: Request, res: Response) => {
     res.status(500).json({
       error: 'Internal server error',
       details: 'An unexpected error occurred while deleting the product'
+    });
+  }
+};
+
+export const getUnassignedProducts = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.params.userId;
+    if (!userId) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    // Extract filters from query parameters
+    const search = req.query.search as string;
+    const minPrice = parseFloat(req.query.minPrice as string);
+    const maxPrice = parseFloat(req.query.maxPrice as string);
+
+    // Get all tasks for the user
+    const userTasks = await Task.find({ userId });
+    const assignedProductIds = new Set(userTasks.map(task => task.productId.toString()));
+    // Build the query
+    const query: any = {
+      status: true,
+      _id: { $nin: Array.from(assignedProductIds).map(id => new mongoose.Types.ObjectId(id)) }
+    };
+
+    // Add search filter if provided
+    if (search) {
+      query.name = { $regex: search, $options: 'i' }; // Case-insensitive search
+    }
+
+    // Add price range filters if provided
+    if (!isNaN(minPrice) || !isNaN(maxPrice)) {
+      query.price = {};
+      if (!isNaN(minPrice)) {
+        query.price.$gte = minPrice;
+      }
+      if (!isNaN(maxPrice)) {
+        query.price.$lte = maxPrice;
+      }
+    }
+
+    // Execute queries
+    const [products, total] = await Promise.all([
+      Product.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Product.countDocuments(query)
+    ]);
+
+    res.status(200).json({
+      products,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      },
+      filters: {
+        search,
+        minPrice,
+        maxPrice
+      }
+    });
+  } catch (error) {
+    console.error('Error getting unassigned products:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      details: 'An unexpected error occurred while fetching unassigned products'
     });
   }
 }; 

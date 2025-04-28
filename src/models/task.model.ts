@@ -11,6 +11,7 @@ export interface ITask extends Document {
   rating?: number;
   review?: string;
   completedAt?: Date;
+  isEdited: boolean;
 }
 
 const taskSchema = new Schema<ITask>({
@@ -46,6 +47,10 @@ const taskSchema = new Schema<ITask>({
   },
   completedAt: {
     type: Date
+  },
+  isEdited: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true

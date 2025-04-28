@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import Task from '../models/task.model';
 import User from '../models/user.model';
 import Product from '../models/product.model';
+import mongoose from 'mongoose';
 
 interface AuthRequest extends Request {
   user?: {
@@ -43,7 +44,6 @@ export const assignRandomTasks = async (req: Request, res: Response) => {
       products.splice(randomIndex, 1);
     }
 
-    console.log("selectedProducts => ", selectedProducts)
     // Create tasks for selected products
     const tasks = await Task.insertMany(
       selectedProducts.map(product => ({
@@ -83,9 +83,8 @@ export const getTaskStatus = async (req: AuthRequest, res: Response) => {
       userId = req.user._id;
     }
 
-    console.log("userId => ", userId);
-    
     const tasks = await Task.find({ userId })
+      .sort({ createdAt: 1 }) 
       .populate('productId')
       .select('status result productPrice');
 
@@ -173,5 +172,58 @@ export const submitTask = async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     res.status(500).json({ message: 'Error submitting task', error });
+  }
+};
+
+export const updateTasksWithProduct = async (req: AuthRequest, res: Response) => {
+  try {
+    const { productId, count } = req.body;
+    const userId = req.user?._id;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    if (!productId || !count) {
+      return res.status(400).json({ message: 'Product ID and count are required' });
+    }
+
+    // Find the product
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    // Get the specified number of oldest tasks for the user
+    const tasksToUpdate = await Task.find({ userId })
+      .sort({ createdAt: 1 }) // Sort by oldest first
+      .limit(count);
+
+    if (tasksToUpdate.length === 0) {
+      return res.status(404).json({ message: 'No tasks found to update' });
+    }
+
+    // Update the tasks with the new product
+    const updatedTasks = await Promise.all(
+      tasksToUpdate.map(async (task) => {
+        task.productId = product._id as mongoose.Types.ObjectId;
+        task.productPrice = product.price;
+        task.isEdited = true;
+        return task.save();
+      })
+    );
+
+    // Get all tasks for the user sorted by creation date
+    const allTasks = await Task.find({ userId })
+      .populate('productId')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      message: 'Tasks updated successfully',
+      updatedTasks,
+      allTasks
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating tasks', error });
   }
 }; 
