@@ -14,7 +14,6 @@ interface AuthRequest extends Request {
 export const assignRandomTasks = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
-
     // Find user and get their daily available orders
     const user = await User.findById(userId);
     if (!user) {
@@ -32,7 +31,11 @@ export const assignRandomTasks = async (req: Request, res: Response) => {
 
     // Randomly select products based on dailyAvailableOrders
     const selectedProducts = [];
-    const availableOrders = user.dailyAvailableOrders || 5; // Default to 5 if not set
+    const availableOrders = user.dailyAvailableOrders || 40; // Default to 5 if not set
+
+    if (!user.dailyAvailableOrders) {
+      await User.updateOne({ _id: userId }, { $set: { dailyAvailableOrders: availableOrders } });
+    }
 
     while (selectedProducts.length < availableOrders && products.length > 0) {
       const randomIndex = Math.floor(Math.random() * products.length);
@@ -40,6 +43,7 @@ export const assignRandomTasks = async (req: Request, res: Response) => {
       products.splice(randomIndex, 1);
     }
 
+    console.log("selectedProducts => ", selectedProducts)
     // Create tasks for selected products
     const tasks = await Task.insertMany(
       selectedProducts.map(product => ({
