@@ -121,6 +121,11 @@ export const login = async (req: Request, res: Response) => {
         email: user.email,
         name: user.name,
         role: user.role,
+        balance: user.balance,
+        dailyAvailableOrders: user.dailyAvailableOrders,
+        todaysOrders: user.todaysOrders,
+        todaysEarnings: user.todaysEarnings,
+        totalEarnings: user.totalEarnings,
       },
       token,
     });

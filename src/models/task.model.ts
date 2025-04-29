@@ -12,6 +12,8 @@ export interface ITask extends Document {
   review?: string;
   completedAt?: Date;
   isEdited: boolean;
+  percentage: number;
+  taskNumber: number;
 }
 
 const taskSchema = new Schema<ITask>({
@@ -51,6 +53,14 @@ const taskSchema = new Schema<ITask>({
   isEdited: {
     type: Boolean,
     default: false
+  },
+  percentage: {
+    type: Number,
+    default: 0
+  },
+  taskNumber: {
+    type: Number,
+    required: true
   }
 }, {
   timestamps: true

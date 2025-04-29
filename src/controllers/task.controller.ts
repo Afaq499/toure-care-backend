@@ -32,7 +32,7 @@ export const assignRandomTasks = async (req: Request, res: Response) => {
 
     // Randomly select products based on dailyAvailableOrders
     const selectedProducts = [];
-    const availableOrders = user.dailyAvailableOrders || 40; // Default to 5 if not set
+    const availableOrders = user.dailyAvailableOrders || 40; // Default to 40 if not set
 
     if (!user.dailyAvailableOrders) {
       await User.updateOne({ _id: userId }, { $set: { dailyAvailableOrders: availableOrders } });
@@ -44,12 +44,13 @@ export const assignRandomTasks = async (req: Request, res: Response) => {
       products.splice(randomIndex, 1);
     }
 
-    // Create tasks for selected products
+    // Create tasks for selected products with task numbers
     const tasks = await Task.insertMany(
-      selectedProducts.map(product => ({
+      selectedProducts.map((product, index) => ({
         productId: product._id,
         userId,
-        productPrice: product.price
+        productPrice: product.price,
+        taskNumber: index + 1
       }))
     );
 
@@ -84,9 +85,9 @@ export const getTaskStatus = async (req: AuthRequest, res: Response) => {
     }
 
     const tasks = await Task.find({ userId })
-      .sort({ createdAt: 1 }) 
+      .sort({ taskNumber: 1 }) 
       .populate('productId')
-      .select('status result productPrice');
+      .select('status result productPrice isEdited percentage taskNumber');
 
       const [totalTasks, completedTasks, pendingTasks] = await Promise.all([
         Task.countDocuments({ userId }),
@@ -142,15 +143,14 @@ export const submitTask = async (req: AuthRequest, res: Response) => {
     task.completedAt = new Date();
     await task.save();
 
-    // Calculate earnings (1% of product price)
-    const earnings = task.productPrice * 0.01;
+    const earnings = task.productPrice * (task.percentage || 0.008);
 
     // Update user's earnings
     const user = await User.findById(task.userId);
     if (user) {
       // Update total earnings
       user.totalEarnings = (user.totalEarnings || 0) + earnings;
-      
+      user.balance = (user.balance || 0) + earnings;      
       // Update today's earnings
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -177,53 +177,54 @@ export const submitTask = async (req: AuthRequest, res: Response) => {
 
 export const updateTasksWithProduct = async (req: AuthRequest, res: Response) => {
   try {
-    const { productId, count } = req.body;
-    const userId = req.user?._id;
+    const { productId, startAfter, userId, percentage } = req.body;
 
     if (!userId) {
-      return res.status(401).json({ message: 'User not authenticated' });
+      return res.status(401).json({ error: 'User not authenticated' });
     }
 
-    if (!productId || !count) {
-      return res.status(400).json({ message: 'Product ID and count are required' });
+    if (!productId || !startAfter) {
+      return res.status(400).json({ error: 'Product ID and Start After are required' });
     }
 
     // Find the product
     const product = await Product.findById(productId);
     if (!product) {
-      return res.status(404).json({ message: 'Product not found' });
+      return res.status(404).json({ error: 'Product not found' });
     }
-
-    // Get the specified number of oldest tasks for the user
-    const tasksToUpdate = await Task.find({ userId })
-      .sort({ createdAt: 1 }) // Sort by oldest first
-      .limit(count);
-
-    if (tasksToUpdate.length === 0) {
-      return res.status(404).json({ message: 'No tasks found to update' });
-    }
-
-    // Update the tasks with the new product
-    const updatedTasks = await Promise.all(
-      tasksToUpdate.map(async (task) => {
-        task.productId = product._id as mongoose.Types.ObjectId;
-        task.productPrice = product.price;
-        task.isEdited = true;
-        return task.save();
-      })
-    );
 
     // Get all tasks for the user sorted by creation date
-    const allTasks = await Task.find({ userId })
+    const taskToUpdate = await Task.findOne({ userId, taskNumber: startAfter })
+      .sort({ createdAt: 1 });
+
+    // Check if the requested task number exists
+    if (!taskToUpdate) {
+      return res.status(404).json({ error: 'Task number not found' });
+    }
+
+    // Check if the task is already completed
+    if (taskToUpdate.status === 'completed') {
+      return res.status(400).json({ error: 'Cannot update completed tasks' });
+    }
+
+    // Update the task with the new product
+    taskToUpdate.productId = product._id as mongoose.Types.ObjectId;
+    taskToUpdate.productPrice = product.price;
+    taskToUpdate.isEdited = true;
+    taskToUpdate.percentage = percentage;
+    await taskToUpdate.save();
+
+    // Get updated list of tasks
+    const updatedTasks = await Task.find({ userId })
       .populate('productId')
       .sort({ createdAt: -1 });
 
     res.status(200).json({
-      message: 'Tasks updated successfully',
-      updatedTasks,
-      allTasks
+      message: 'Task updated successfully',
+      updatedTask: taskToUpdate,
+      allTasks: updatedTasks
     });
   } catch (error) {
-    res.status(500).json({ message: 'Error updating tasks', error });
+    res.status(500).json({ message: 'Error updating task', error });
   }
 }; 

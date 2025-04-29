@@ -5,6 +5,14 @@ import MemberAssociation from '../models/member-association.model';
 import { generateRandomString } from '../utils/helpers';
 import bcrypt from 'bcryptjs';
 
+interface AuthRequest extends Request {
+  user?: {
+    _id: string;
+    name: string;
+    mobileNumber: string;
+  };
+}
+
 export const createMember = async (req: Request, res: Response) => {
   try {
     const {
@@ -115,11 +123,11 @@ export const createMember = async (req: Request, res: Response) => {
   }
 };
 
-export const getMemberDetails = async (req: Request, res: Response) => {
+export const getMemberDetails = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
-    const member = await User.findById(id);
+    const member = await User.findById(id || req.user?._id);
     if (!member) {
       return res.status(404).json({
         success: false,
