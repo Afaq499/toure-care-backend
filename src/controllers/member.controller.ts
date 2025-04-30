@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import User from '../models/user.model';
 import MemberAssociation from '../models/member-association.model';
+import Task from '../models/task.model';
 import { generateRandomString } from '../utils/helpers';
 import bcrypt from 'bcryptjs';
 
@@ -138,6 +139,13 @@ export const getMemberDetails = async (req: AuthRequest, res: Response) => {
     // Get the member's association details
     const association = await MemberAssociation.findOne({ memberId: id });
 
+    // Get task statistics
+    const [totalTasks, completedTasks, pendingTasks] = await Promise.all([
+      Task.countDocuments({ userId: id || req.user?._id }),
+      Task.countDocuments({ userId: id || req.user?._id, status: 'completed' }),
+      Task.countDocuments({ userId: id || req.user?._id, status: 'pending' })
+    ]);
+
     // Return member details without sensitive information
     const memberResponse = {
       _id: member._id,
@@ -153,6 +161,8 @@ export const getMemberDetails = async (req: AuthRequest, res: Response) => {
       todaysOrders: member.todaysOrders,
       todaysCommission: member.todaysCommission,
       reputation: member.reputation,
+      todaysEarnings: member.todaysEarnings,
+      totalEarnings: member.totalEarnings,
       status: member.status,
       frozenAmount: member.frozenAmount,
       allowWithdrawal: member.allowWithdrawal,
@@ -160,6 +170,11 @@ export const getMemberDetails = async (req: AuthRequest, res: Response) => {
       withdrawalMaxAmount: member.withdrawalMaxAmount,
       createdAt: member.createdAt,
       updatedAt: member.updatedAt,
+      taskStats: {
+        totalTasks,
+        completedTasks,
+        pendingTasks
+      },
       association: association ? {
         status: association.status,
         commissionRate: association.commissionRate,

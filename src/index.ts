@@ -7,6 +7,7 @@ import agentRoutes from './routes/agent.routes';
 import productRoutes from './routes/product.routes';
 import memberRoutes from './routes/member.routes';
 import taskRoutes from './routes/task.routes';
+import userRoutes from './routes/user.routes';
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.use('/api', agentRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/members', memberRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/users', userRoutes);
 
 // Database connection
 mongoose.connect(process.env.MONGODB_URI!)

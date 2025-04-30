@@ -13,6 +13,8 @@ router.post('/', authenticate, createMember);
 // Get all members with pagination and search
 router.get('/', authenticate, getAllMembers);
 
+router.get('/member-detail', authenticate, getMemberDetails);
+
 // Get member details
 router.get('/:id', authenticate, getMemberDetails);
 
