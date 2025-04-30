@@ -5,6 +5,7 @@ import MemberAssociation from '../models/member-association.model';
 import Task from '../models/task.model';
 import { generateRandomString } from '../utils/helpers';
 import bcrypt from 'bcryptjs';
+import Account from '../models/account.model';
 
 interface AuthRequest extends Request {
   user?: {
@@ -146,6 +147,9 @@ export const getMemberDetails = async (req: AuthRequest, res: Response) => {
       Task.countDocuments({ userId: id || req.user?._id, status: 'pending' })
     ]);
 
+    // Get account details
+    const account = await Account.findOne({ userId: id || req.user?._id });
+
     // Return member details without sensitive information
     const memberResponse = {
       _id: member._id,
@@ -183,6 +187,12 @@ export const getMemberDetails = async (req: AuthRequest, res: Response) => {
         totalCommissionEarned: association.totalCommissionEarned,
         totalOrders: association.totalOrders,
       } : null,
+      account: account ? {
+        fullName: account.fullName,
+        cryptoAddress: account.cryptoAddress,
+        network: account.network,
+        phoneNumber: account.phoneNumber
+      } : null
     };
 
     return res.status(200).json({

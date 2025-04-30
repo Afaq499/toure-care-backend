@@ -8,6 +8,7 @@ import productRoutes from './routes/product.routes';
 import memberRoutes from './routes/member.routes';
 import taskRoutes from './routes/task.routes';
 import userRoutes from './routes/user.routes';
+import accountRoutes from './routes/account.routes';
 
 dotenv.config();
 
@@ -29,6 +30,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/members', memberRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/accounts', accountRoutes);
 
 // Database connection
 mongoose.connect(process.env.MONGODB_URI!)

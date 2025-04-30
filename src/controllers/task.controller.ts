@@ -87,7 +87,7 @@ export const getTaskStatus = async (req: AuthRequest, res: Response) => {
     const tasks = await Task.find({ userId })
       .sort({ taskNumber: 1 }) 
       .populate('productId')
-      .select('status result productPrice isEdited percentage taskNumber');
+      .select('status result productPrice isEdited percentage taskNumber completedAt review rating');
 
       const [totalTasks, completedTasks, pendingTasks] = await Promise.all([
         Task.countDocuments({ userId }),
