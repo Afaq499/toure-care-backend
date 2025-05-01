@@ -14,7 +14,7 @@ interface AuthRequest extends Request {
 // Create a new product
 export const createProduct = async (req: Request, res: Response) => {
   try {
-    const { name, price, description } = req.body;
+    const { name, price, description, image } = req.body;
 
     // Validate required fields
     if (!name || !price) {
@@ -30,7 +30,8 @@ export const createProduct = async (req: Request, res: Response) => {
     const product = new Product({
       name,
       price,
-      description
+      description,
+      image
     });
 
     await product.save();
@@ -144,7 +145,7 @@ export const getProductById = async (req: Request, res: Response) => {
 // Update a product
 export const updateProduct = async (req: Request, res: Response) => {
   try {
-    const { name, price, description, status } = req.body;
+    const { name, price, description, image } = req.body;
 
     const product = await Product.findById(req.params.id);
     
@@ -158,8 +159,8 @@ export const updateProduct = async (req: Request, res: Response) => {
     // Update fields if provided
     if (name) product.name = name;
     if (price) product.price = price;
-    if (description !== undefined) product.description = description;
-    if (status !== undefined) product.status = status;
+    if (description) product.description = description;
+    if (image) product.image = image;
 
     await product.save();
 

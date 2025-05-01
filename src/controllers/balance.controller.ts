@@ -71,7 +71,7 @@ export const updateBalance = async (req: Request, res: Response) => {
       userId,
       { $set: { balance: newBalance } },
       { new: true }
-    ).select('-password -paymentPassword');
+    ).select('-password');
 
     if (!updatedUser) {
       return res.status(500).json({

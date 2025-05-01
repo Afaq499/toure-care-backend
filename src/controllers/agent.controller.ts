@@ -15,7 +15,6 @@ export const createAgent = async (req: Request, res: Response) => {
       dailyAvailableOrders = 0,
       reputation = 0,
       allowWithdrawal = 'allowed',
-      paymentPassword,
       withdrawalMinAmount = 0,
       withdrawalMaxAmount = 1000000
     } = req.body;
@@ -51,7 +50,6 @@ export const createAgent = async (req: Request, res: Response) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const hashedPaymentPassword = paymentPassword ? await bcrypt.hash(paymentPassword, 10) : undefined;
 
     const invitationCode = await generateInvitationCode();
     const generatedParentId = await generateParentId();
@@ -68,7 +66,6 @@ export const createAgent = async (req: Request, res: Response) => {
       dailyAvailableOrders,
       reputation,
       allowWithdrawal,
-      paymentPassword: hashedPaymentPassword,
       withdrawalMinAmount,
       withdrawalMaxAmount
     });
@@ -242,7 +239,7 @@ export const getAllAgents = async (req: Request, res: Response) => {
     const agents = await User.find(searchQuery)
       .skip(skip)
       .limit(limit)
-      .select('-password -paymentPassword') // Exclude sensitive fields
+      .select('-password') // Exclude sensitive fields
       .sort({ createdAt: -1 });
 
     res.json({

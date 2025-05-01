@@ -17,7 +17,6 @@ export interface IUser extends Document {
   status: boolean;
   frozenAmount: number;
   allowWithdrawal: 'allowed' | 'not_allowed';
-  paymentPassword: string;
   withdrawalMinAmount: number;
   withdrawalMaxAmount: number;
   totalEarnings: number;
@@ -103,10 +102,6 @@ const userSchema = new Schema<IUser>(
       type: String,
       enum: ['allowed', 'blocked'],
       default: 'allowed'
-    },
-    paymentPassword: {
-      type: String,
-      minlength: 6
     },
     withdrawalMinAmount: {
       type: Number,

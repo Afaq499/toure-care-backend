@@ -28,7 +28,6 @@ export const createMember = async (req: Request, res: Response) => {
       dailyAvailableOrders = 0,
       reputation = 0,
       allowWithdrawal = 'allowed',
-      paymentPassword,
       withdrawalMinAmount = 0,
       withdrawalMaxAmount = 1000000
     } = req.body;
@@ -62,7 +61,6 @@ export const createMember = async (req: Request, res: Response) => {
       dailyAvailableOrders,
       reputation,
       allowWithdrawal,
-      paymentPassword: await bcrypt.hash(paymentPassword, 10),
       withdrawalMinAmount,
       withdrawalMaxAmount
     });
@@ -242,7 +240,7 @@ export const getAgentMembers = async (req: Request, res: Response) => {
 
     // Get paginated members with their associations
     const members = await User.find(searchQuery)
-      .select('-password -paymentPassword')
+      .select('-password')
       .skip(skip)
       .limit(Number(limit))
       .sort({ createdAt: -1 });
@@ -309,7 +307,7 @@ export const getAllMembers = async (req: Request, res: Response) => {
 
     // Get paginated members with their associations
     const members = await User.find(searchQuery)
-      .select('-password -paymentPassword')
+      .select('-password')
       .skip(skip)
       .limit(Number(limit))
       .sort({ createdAt: -1 });
@@ -419,7 +417,7 @@ export const updateMember = async (req: Request, res: Response) => {
       id,
       { $set: updateData },
       { new: true }
-    ).select('-password -paymentPassword');
+    ).select('-password');
 
     // Update association if commission rate is provided
     if (commissionRate !== undefined) {
@@ -502,7 +500,6 @@ export const registerMember = async (req: Request, res: Response) => {
       name: username,
       mobileNumber: phoneNumber,
       password: await bcrypt.hash(loginPassword, 10),
-      paymentPassword: await bcrypt.hash(withdrawPassword, 10),
       role: 'user',
       parentId: agent._id,
       parentUser: agent.name,

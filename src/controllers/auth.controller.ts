@@ -93,13 +93,74 @@ export const login = async (req: Request, res: Response) => {
       $or: [
         { name: username },
         { mobileNumber: username },
-      ]
+      ],
+      role: { $ne: 'user' }
     }
     
     const user = await User.findOne(userSelector);
 
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Check if user is active
+    if (!user.status) {
+      return res.status(403).json({ error: 'Account is deactivated' });
+    }
+
+    // Check password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { _id: user._id },
+      process.env.JWT_SECRET || 'fallback-secret',
+      { expiresIn: '24h' }
+    );
+
+    res.json({
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        balance: user.balance,
+        dailyAvailableOrders: user.dailyAvailableOrders,
+        todaysOrders: user.todaysOrders,
+        todaysEarnings: user.todaysEarnings,
+        totalEarnings: user.totalEarnings,
+      },
+      token,
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Error logging in' });
+  }
+};
+
+export const memberLogin = async (req: Request, res: Response) => {
+  try {
+    const { password, username } = req.body;
+    // Find user
+    const userSelector = (username?.includes('@')) ? { email: username } : {
+      $or: [
+        { name: username },
+        { mobileNumber: username },
+      ],
+      role: 'user'
+    }
+    
+    const user = await User.findOne(userSelector);
+
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Check if user is active
+    if (!user.status) {
+      return res.status(403).json({ error: 'Account is deactivated' });
     }
 
     // Check password
