@@ -14,7 +14,7 @@ interface AuthRequest extends Request {
 // Create a new product
 export const createProduct = async (req: Request, res: Response) => {
   try {
-    const { name, price, description, image } = req.body;
+    const { name, price, description, image, isTask } = req.body;
 
     // Validate required fields
     if (!name || !price) {
@@ -31,7 +31,8 @@ export const createProduct = async (req: Request, res: Response) => {
       name,
       price,
       description,
-      image
+      image,
+      isTask
     });
 
     await product.save();

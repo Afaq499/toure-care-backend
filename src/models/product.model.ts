@@ -6,6 +6,7 @@ export interface IProduct extends Document {
   description?: string;
   status: boolean;
   image?: string;
+  isTask: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -34,6 +35,10 @@ const productSchema = new Schema<IProduct>(
     image: {
       type: String,
       trim: true
+    },
+    isTask: {
+      type: Boolean,
+      default: false
     }
   },
   {

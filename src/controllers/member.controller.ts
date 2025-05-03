@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import User from '../models/user.model';
 import MemberAssociation from '../models/member-association.model';
 import Task from '../models/task.model';
+import Product from '../models/product.model';
 import { generateRandomString } from '../utils/helpers';
 import bcrypt from 'bcryptjs';
 import Account from '../models/account.model';
@@ -387,6 +388,7 @@ export const updateMember = async (req: Request, res: Response) => {
       withdrawalMinAmount,
       withdrawalMaxAmount,
       commissionRate,
+      password
     } = req.body;
 
     // Find the member
@@ -411,6 +413,10 @@ export const updateMember = async (req: Request, res: Response) => {
     if (allowWithdrawal) updateData.allowWithdrawal = allowWithdrawal;
     if (withdrawalMinAmount !== undefined) updateData.withdrawalMinAmount = withdrawalMinAmount;
     if (withdrawalMaxAmount !== undefined) updateData.withdrawalMaxAmount = withdrawalMaxAmount;
+    
+    if (password) {
+      updateData.password = await bcrypt.hash(password, 10);
+    }
 
     // Update member
     const updatedMember = await User.findByIdAndUpdate(
@@ -473,15 +479,113 @@ export const updateMember = async (req: Request, res: Response) => {
   }
 };
 
+const assignTasksToMember = async (memberId: mongoose.Types.ObjectId) => {
+  try {
+    // Get all products where isTask is true, sorted by price ascending
+    const products = await Product.find({ isTask: true, status: true })
+      .sort({ price: 1 })
+      .lean();
+
+    if (products.length === 0) {
+      throw new Error('No task products available');
+    }
+
+    let selectedProducts: any[] = [];
+    let totalPrice = 0;
+    let currentIndex = 0;
+
+    // First pass: Try to select exactly 40 products with total price between 70-75
+    while (selectedProducts.length < 40 && currentIndex < products.length) {
+      const product = products[currentIndex];
+      const potentialTotal = totalPrice + product.price;
+
+      if (potentialTotal <= 75) {
+        selectedProducts.push(product);
+        totalPrice = potentialTotal;
+      }
+      currentIndex++;
+    }
+
+    // If we couldn't get exactly 40 products or total price is below 70, try a different approach
+    if (selectedProducts.length !== 40 || totalPrice < 70) {
+      selectedProducts = [];
+      totalPrice = 0;
+      currentIndex = 0;
+
+      // Second pass: Try to find a combination that meets our criteria
+      while (selectedProducts.length < 40 && currentIndex < products.length) {
+        const product = products[currentIndex];
+        const potentialTotal = totalPrice + product.price;
+
+        if (potentialTotal <= 75) {
+          selectedProducts.push(product);
+          totalPrice = potentialTotal;
+        }
+        currentIndex++;
+      }
+
+      // If we still don't have 40 products, fill the remaining slots with the cheapest products
+      if (selectedProducts.length < 40) {
+        currentIndex = 0;
+        while (selectedProducts.length < 40 && currentIndex < products.length) {
+          const product = products[currentIndex];
+          if (!selectedProducts.some(p => p._id.toString() === product._id.toString())) {
+            selectedProducts.push(product);
+            totalPrice += product.price;
+          }
+          currentIndex++;
+        }
+      }
+    }
+
+    // Create tasks for selected products
+    const tasks = selectedProducts.map((product, index) => ({
+      productId: product._id,
+      userId: memberId,
+      status: 'pending',
+      productPrice: product.price,
+      taskNumber: index + 1,
+      percentage: 0
+    }));
+
+    // Insert all tasks at once
+    await Task.insertMany(tasks);
+
+    console.log('Assigned tasks:', {
+      totalTasks: tasks.length,
+      totalPrice,
+      averagePrice: totalPrice / tasks.length
+    });
+
+    return {
+      success: true,
+      totalTasks: tasks.length,
+      totalPrice,
+      averagePrice: totalPrice / tasks.length
+    };
+  } catch (error) {
+    console.error('Error assigning tasks:', error);
+    throw error;
+  }
+};
+
 export const registerMember = async (req: Request, res: Response) => {
   try {
     const {
       loginPassword,
       phoneNumber,
       referralCode,
-      username,
-      withdrawPassword
+      username
     } = req.body;
+
+    // Check if mobile number already exists
+    const existingUser = await User.findOne({ mobileNumber: phoneNumber });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mobile number is already registered',
+      });
+    }
 
     // Find agent by referral code
     const agent = await User.findOne({ invitationCode: referralCode, role: 'agent' });
@@ -508,7 +612,7 @@ export const registerMember = async (req: Request, res: Response) => {
       todaysCommission: 0,
       status: true,
       frozenAmount: 0,
-      balance: 0,
+      balance: 15,
       dailyAvailableOrders: 0,
       reputation: 100,
       allowWithdrawal: 'allowed',
@@ -529,6 +633,8 @@ export const registerMember = async (req: Request, res: Response) => {
     });
 
     await association.save();
+    // Assign tasks to the new member
+    const taskAssignment = await assignTasksToMember(member._id as mongoose.Types.ObjectId);
 
     // Return the created member without sensitive information
     const memberResponse = {
@@ -557,6 +663,7 @@ export const registerMember = async (req: Request, res: Response) => {
         joinedAt: association.joinedAt,
         lastActiveAt: association.lastActiveAt,
       },
+      taskAssignment
     };
 
     return res.status(201).json({
@@ -565,6 +672,13 @@ export const registerMember = async (req: Request, res: Response) => {
       data: memberResponse,
     });
   } catch (error: any) {
+    // Handle other potential errors
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mobile number is already registered',
+      });
+    }
     return res.status(500).json({
       success: false,
       message: 'Error registering member',

@@ -21,8 +21,8 @@ export const assignRandomTasks = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Get all available products
-    const products = await Product.find();
+    // Get all available products sorted by price
+    const products = await Product.find({ isTask: true }).sort({ price: 1 });
     if (products.length === 0) {
       return res.status(404).json({ message: 'No products available' });
     }
@@ -30,19 +30,14 @@ export const assignRandomTasks = async (req: Request, res: Response) => {
     // Delete existing tasks for the user
     await Task.deleteMany({ userId });
 
-    // Randomly select products based on dailyAvailableOrders
-    const selectedProducts = [];
     const availableOrders = user.dailyAvailableOrders || 40; // Default to 40 if not set
 
     if (!user.dailyAvailableOrders) {
       await User.updateOne({ _id: userId }, { $set: { dailyAvailableOrders: availableOrders } });
     }
 
-    while (selectedProducts.length < availableOrders && products.length > 0) {
-      const randomIndex = Math.floor(Math.random() * products.length);
-      selectedProducts.push(products[randomIndex]);
-      products.splice(randomIndex, 1);
-    }
+    // Take the first N products based on availableOrders
+    const selectedProducts = products.slice(0, availableOrders);
 
     // Create tasks for selected products with task numbers
     const tasks = await Task.insertMany(
