@@ -170,10 +170,13 @@ export const updateAgent = async (req: Request, res: Response) => {
     // Remove any fields that shouldn't be updated
     delete updates._id;
     delete updates.email;
-    delete updates.password;
     delete updates.role;
     delete updates.registrationTime;
     delete updates.invitationCode;
+
+    if (updates.password) {
+      updates.password = await bcrypt.hash(updates.password, 10);
+    }
 
     const user = await User.findOneAndUpdate(
       { _id: id, role: 'agent' },
