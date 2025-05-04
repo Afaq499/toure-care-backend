@@ -138,7 +138,7 @@ export const submitTask = async (req: AuthRequest, res: Response) => {
     task.completedAt = new Date();
     await task.save();
 
-    const earnings = task.productPrice * (task.percentage || 0.008);
+    const earnings = task.productPrice * (task.percentage ? (task.percentage/100): 0.008);
 
     // Update user's earnings
     const user = await User.findById(task.userId);
