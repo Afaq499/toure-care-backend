@@ -55,7 +55,7 @@ export const register = async (req: Request, res: Response) => {
     const token = jwt.sign(
       { _id: user._id },
       process.env.JWT_SECRET || 'fallback-secret',
-      { expiresIn: '24h' }
+      { expiresIn: '200d' }
     );
 
     res.status(201).json({
@@ -118,7 +118,7 @@ export const login = async (req: Request, res: Response) => {
     const token = jwt.sign(
       { _id: user._id },
       process.env.JWT_SECRET || 'fallback-secret',
-      { expiresIn: '24h' }
+      { expiresIn: '200d' }
     );
 
     res.json({
@@ -173,7 +173,7 @@ export const memberLogin = async (req: Request, res: Response) => {
     const token = jwt.sign(
       { _id: user._id },
       process.env.JWT_SECRET || 'fallback-secret',
-      { expiresIn: '24h' }
+      { expiresIn: '200d' }
     );
 
     res.json({
