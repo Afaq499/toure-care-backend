@@ -39,7 +39,7 @@ export const adminAuth = async (req: AuthRequest, res: Response, next: NextFunct
       throw new Error();
     }
 
-    req.user = user;
+    req.user = { _id: String(user._id) };
     next();
   } catch (error) {
     res.status(401).json({ error: 'Please authenticate as admin.' });

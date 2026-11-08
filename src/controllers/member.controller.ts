@@ -252,7 +252,7 @@ export const getAgentMembers = async (req: Request, res: Response) => {
 
     // Map associations to members
     const membersWithAssociations = members.map(member => {
-      const association = associations.find(a => a.memberId.toString() === member._id.toString());
+      const association = associations.find(a => a.memberId.toString() === String(member._id));
       return {
         ...member.toObject(),
         association: association ? {
@@ -328,9 +328,9 @@ export const getAllMembers = async (req: Request, res: Response) => {
 
     // Map associations and agent details to members
     const membersWithDetails = members.map(member => {
-      const association = associations.find(a => a.memberId.toString() === member._id.toString());
+      const association = associations.find(a => a.memberId.toString() === String(member._id));
       const agent = member.parentId && member.parentId !== '0' && mongoose.Types.ObjectId.isValid(member.parentId)
-        ? agents.find(a => a._id.toString() === member.parentId)
+        ? agents.find(a => String(a._id) === member.parentId)
         : null;
       
       return {
