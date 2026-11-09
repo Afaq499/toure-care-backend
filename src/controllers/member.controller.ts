@@ -479,6 +479,46 @@ export const updateMember = async (req: Request, res: Response) => {
   }
 };
 
+export const deleteMember = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const member = await User.findById(id);
+    if (!member) {
+      return res.status(404).json({
+        success: false,
+        message: 'Member not found',
+      });
+    }
+
+    if (member.role !== 'user') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only members can be deleted',
+      });
+    }
+
+    await Promise.all([
+      MemberAssociation.deleteMany({ memberId: id }),
+      Task.deleteMany({ userId: id }),
+      Account.deleteMany({ userId: id }),
+    ]);
+
+    await User.findByIdAndDelete(id);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Member deleted successfully',
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: 'Error deleting member',
+      error: error.message,
+    });
+  }
+};
+
 const assignTasksToMember = async (memberId: mongoose.Types.ObjectId) => {
   try {
     // Get all products where isTask is true, sorted by price ascending
