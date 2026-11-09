@@ -1,5 +1,5 @@
 import express from 'express';
-import { createMember, getMemberDetails, getAgentMembers, getAllMembers, updateMember, registerMember } from '../controllers/member.controller';
+import { createMember, getMemberDetails, getAgentMembers, getAllMembers, updateMember, deleteMember, registerMember } from '../controllers/member.controller';
 import { authenticate } from '../middleware/auth';
 
 const router = express.Router();
@@ -20,6 +20,9 @@ router.get('/:id', authenticate, getMemberDetails);
 
 // Update member details
 router.put('/:id', authenticate, updateMember);
+
+// Delete a member and related records
+router.delete('/:id', authenticate, deleteMember);
 
 // Get all members of an agent with pagination and search
 router.get('/agent/:agentId', authenticate, getAgentMembers);
